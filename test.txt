@@ -1,0 +1,12 @@
+| Service                | Responsibility                              |
+| ---------------------- | ------------------------------------------- |
+| `auth_service`         | Users, roles, JWT authentication            |
+| `organization_service` | Organizations, teams, member roles          |
+| `project_service`      | Projects, ownership, members                |
+| `task_service`         | Tasks, subtasks, Kanban board, Leader Board |
+| `sprint_service`       | Sprints, milestones, progress tracking      |
+| `comment_service`      | Comments, mentions, activity feed           |
+| `attachment_service`   | File uploads and management                 |
+| `notification_service` | Real-time & email notifications             |
+| `gantt_service`        | Timeline / Gantt chart visualization        |
+| `traefik`              | Reverse proxy, routing, SSL termination     |

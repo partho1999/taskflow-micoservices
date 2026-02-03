@@ -1,0 +1,252 @@
+version: "3.9"
+
+services:
+  # ----------------------------------- 
+  # 🚀 API GATEWAY — TRAEFIK 
+  # ----------------------------------- 
+  traefik: 
+    image: traefik:v3.0 
+    container_name: traefik 
+    command: 
+      - "--providers.docker=true" 
+      - "--providers.docker.exposedbydefault=false" 
+      - "--entrypoints.web.address=:80" 
+    ports: 
+      - "8081:80" # Traefik → API Gateway - "8080:8080" 
+    # Traefik Dashboard 
+    volumes: 
+      - /var/run/docker.sock:/var/run/docker.sock:ro 
+    networks:
+     - taskflow_net
+  # -----------------------------------
+  # 🔐 AUTH SERVICE
+  # -----------------------------------
+  auth_service: 
+    build: ./services/auth_service 
+    command: >
+      gunicorn auth_service.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 2
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+    container_name: auth_service 
+    restart: always 
+    env_file: 
+      - ./services/auth_service/.env 
+    depends_on: 
+      - auth_db 
+    volumes: 
+    # - ./services/auth_service:/app 
+      - auth_media:/app/media 
+      - ./services/auth_service/keys:/app/keys # ← PUBLIC/PRIVATE KEYS 
+    ports:
+      - "8000:8000"   # <-- ADD THIS
+    networks: 
+      - taskflow_net 
+  
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/auth`)"
+      - "traefik.http.middlewares.auth-stripprefix.stripprefix.prefixes=/auth"
+      - "traefik.http.routers.auth.middlewares=auth-stripprefix"
+      - "traefik.http.services.auth.loadbalancer.server.port=8000"
+
+  auth_db: 
+    image: postgres:16 
+    container_name: auth_db 
+    restart: always 
+    env_file: 
+      - .env.auth # <-- stays in project root 
+    volumes: 
+      - auth_db_data:/var/lib/postgresql/data 
+    networks: 
+      - taskflow_net
+
+  organization_service: 
+    build: ./services/organization_service 
+    command: >
+      gunicorn org_service.wsgi:application
+      --bind 0.0.0.0:8001
+      --workers 2
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+    container_name: organization_service 
+    restart: always 
+    env_file: 
+      - ./services/organization_service/.env 
+    environment:
+      - DJANGO_SETTINGS_MODULE=org_service.settings 
+    depends_on: 
+      - organization_db 
+    volumes: 
+      # - ./services/organization_service:/app 
+      - ./services/organization_service/keys:/app/keys 
+    ports:
+      - "8001:8001" 
+    networks: 
+      - taskflow_net 
+    labels:
+      - "traefik.enable=true"
+
+      # ROUTER RULE
+      - "traefik.http.routers.org.rule=Host(`localhost`) && PathPrefix(`/org`)"
+      - "traefik.http.routers.org.entrypoints=web"
+
+      # STRIP PREFIX
+      - "traefik.http.middlewares.org-stripprefix.stripprefix.prefixes=/org"
+      - "traefik.http.routers.org.middlewares=org-stripprefix"
+
+      # LOADBALANCER PORT
+      - "traefik.http.services.org.loadbalancer.server.port=8001"
+
+  organization_db: 
+    image: postgres:16 
+    container_name: organization_db 
+    restart: always 
+    env_file: 
+      - .env.org # <-- stays in project root 
+    volumes: 
+      - org_db_data:/var/lib/postgresql/data 
+    networks: 
+      - taskflow_net
+
+  project_service:
+    build: ./services/project_service
+    container_name: project_service
+    command: >
+      gunicorn app.main:app
+      -k uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8002
+      --workers 2
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+    env_file:
+      - ./services/project_service/.env
+    depends_on:
+      - project_db
+    ports:
+      - "8002:8002"   # optional, good for debugging
+    volumes:
+      - ./services/project_service:/app 
+      - ./services/project_service/keys:/app/keys
+    networks:
+      - taskflow_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.project.rule=Host(`localhost`) && PathPrefix(`/projects`)"
+      - "traefik.http.middlewares.project-stripprefix.stripprefix.prefixes=/projects"
+      - "traefik.http.routers.project.middlewares=project-stripprefix"
+      - "traefik.http.services.project.loadbalancer.server.port=8002"
+
+
+  project_db:
+    image: postgres:16
+    container_name: project_db
+    restart: always
+    env_file:
+      - .env.project
+    volumes:
+      - project_db_data:/var/lib/postgresql/data
+    networks:
+      - taskflow_net
+
+  task_service:
+    build: ./services/task_service
+    container_name: task_service
+    command: >
+      gunicorn app.main:app
+      -k uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8003
+      --workers 2
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+    env_file:
+      - ./services/task_service/.env
+    depends_on:
+      - task_db
+      - organization_service
+      - auth_service
+    ports:
+      - "8003:8003"   # optional, for debugging
+    volumes:
+      - ./services/task_service:/app
+      - ./services/task_service/keys:/keys
+    networks:
+      - taskflow_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.task.rule=Host(`localhost`) && PathPrefix(`/tasks`)"
+      - "traefik.http.middlewares.task-stripprefix.stripprefix.prefixes=/tasks"
+      - "traefik.http.routers.task.middlewares=task-stripprefix"
+      - "traefik.http.services.task.loadbalancer.server.port=8003"
+
+  task_db:
+    image: postgres:16
+    container_name: task_db
+    restart: always
+    env_file:
+      - .env.task
+    volumes:
+      - task_db_data:/var/lib/postgresql/data
+    networks:
+      - taskflow_net
+
+
+
+  # -----------------------------------
+  # 🚀 API GATEWAY (FASTAPI)
+  # -----------------------------------
+  # api_gateway:
+  #   build: ./services/api_gateway
+  #   container_name: api_gateway
+  #   command: gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+  #   volumes:
+  #     - ./services/api_gateway:/app
+  #   ports:
+  #     - "8000:8000"
+  #   env_file:
+  #     - ./services/api_gateway/.env
+  #   depends_on:
+  #     - auth_service
+  #     - organization_service
+  #   networks:
+  #     - backend
+
+  # -----------------------------------
+  # 🛠️ PGADMIN
+  # -----------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@taskflow.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - auth_db
+      - organization_db
+    networks:
+      - taskflow_net
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+# -----------------------------------
+# 🌐 NETWORK & VOLUMES
+# -----------------------------------
+networks: 
+  taskflow_net: 
+    driver: bridge
+
+volumes: 
+  auth_db_data: 
+  org_db_data: 
+  project_db_data:
+  task_db_data:
+  auth_media: 
+  pgadmin_data:

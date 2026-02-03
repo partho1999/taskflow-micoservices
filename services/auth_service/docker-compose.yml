@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  auth_service:
+    build: .
+    container_name: auth_service
+    restart: always
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env
+    depends_on:
+      - auth_db
+    volumes:
+      - .:/app
+      - media_volume:/app/media
+
+  auth_db:
+    image: postgres:16
+    container_name: auth_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: auth_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@taskflow.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - auth_db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  auth_db_data:
+  media_volume:
+  pgadmin_data:
