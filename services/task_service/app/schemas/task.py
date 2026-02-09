@@ -40,6 +40,7 @@ class TaskOut(TaskBase):
     id: UUID
     project_id: UUID
     reporter_id: UUID
+    sprint_id: UUID
     position: int
     created_at: datetime
     updated_at: datetime

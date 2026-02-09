@@ -17,13 +17,16 @@ def create_sprint(
     user: dict = Depends(get_current_user),
 ):
     service = SprintService(db)
-    sprint = service.create_sprint(sprint_in, user_id=user["id"])
+    sprint = service.create_sprint(sprint_in, user_id=user["user_id"])
     return sprint
 
 
 @router.get("/", response_model=List[SprintRead])
 def list_sprints(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
     service = SprintService(db)
     return service.get_sprints(skip, limit)

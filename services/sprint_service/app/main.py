@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import routers
 from app.api.sprint import router as sprint_router
 # future routers
-# from app.api.milestone import router as milestone_router
-# from app.api.progress import router as progress_router
+from app.api.milestone import router as milestone_router
+from app.api.progress import router as progress_router
 
 # -----------------------------
 # Initialize FastAPI App
@@ -38,8 +38,8 @@ app.include_router(
 )
 
 # Uncomment when ready
-# app.include_router(milestone_router, prefix="/api/milestones", tags=["Milestones"])
-# app.include_router(progress_router, prefix="/api/progress", tags=["Progress"])
+app.include_router(milestone_router, prefix="/api/milestones", tags=["Milestones"])
+app.include_router(progress_router, prefix="/api/progress", tags=["Progress"])
 
 # -----------------------------
 # Health Check

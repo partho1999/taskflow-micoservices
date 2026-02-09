@@ -29,14 +29,20 @@ class TaskService:
         self,
         project_id: UUID = None,
         assignee_id: UUID = None,
+        sprint_id: UUID | str = None,
+        sprint_not_assigned: bool = False,
         status: TaskStatus = None,
         skip: int = 0,
         limit: int = 20
     ) -> List[Task]:
         query = self.db.query(Task).filter(
-            Task.is_deleted == False,
-            Task.sprint_id == None
+            Task.is_deleted == False
         )
+        # Only filter for tasks with no sprint if sprint_id="not_assigned"
+        if sprint_not_assigned:
+            query = query.filter(Task.sprint_id == None)
+        if sprint_id:
+            query = query.filter(Task.sprint_id == UUID(str(sprint_id)))
         if project_id:
             query = query.filter(Task.project_id == project_id)
         if assignee_id:

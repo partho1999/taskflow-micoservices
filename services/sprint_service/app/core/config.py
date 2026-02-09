@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # Database
     # -----------------------------
     DATABASE_URL: str | None = None
-    PROJECT_SERVICE_URL: str | None = None
+    TASK_SERVICE_URL: str | None = None
 
     # -----------------------------
     # JWT (RS256)

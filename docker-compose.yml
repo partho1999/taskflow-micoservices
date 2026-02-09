@@ -195,6 +195,50 @@ services:
     networks:
       - taskflow_net
 
+  sprint_service:
+    build: ./services/sprint_service
+    container_name: sprint_service
+    command: >
+      gunicorn app.main:app
+      -k uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8004
+      --workers 2
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+    env_file:
+      - ./services/sprint_service/.env
+    depends_on:
+      - sprint_db
+      - organization_service
+      - auth_service
+      - project_service
+    ports:
+      - "8004:8004"   # optional, for debugging
+    volumes:
+      - ./services/sprint_service:/app
+      - ./services/sprint_service/keys:/keys
+    networks:
+      - taskflow_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sprint.rule=Host(`localhost`) && PathPrefix(`/sprints`)"
+      - "traefik.http.middlewares.sprint-stripprefix.stripprefix.prefixes=/sprints"
+      - "traefik.http.routers.sprint.middlewares=sprint-stripprefix"
+      - "traefik.http.services.sprint.loadbalancer.server.port=8004"
+
+  sprint_db:
+    image: postgres:16
+    container_name: sprint_db
+    restart: always
+    env_file:
+      - .env.sprint
+    volumes:
+      - sprint_db_data:/var/lib/postgresql/data
+    networks:
+      - taskflow_net
+
+
 
 
   # -----------------------------------
@@ -248,5 +292,6 @@ volumes:
   org_db_data: 
   project_db_data:
   task_db_data:
+  sprint_db_data:
   auth_media: 
   pgadmin_data:

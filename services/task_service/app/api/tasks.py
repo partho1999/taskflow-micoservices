@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
-
+from fastapi import Query
 from app.db.session import get_db
 from app.services.task_service import TaskService
 from app.schemas.task import TaskCreate, TaskOut, TaskUpdate, AssignSprintToTasks
@@ -96,6 +96,8 @@ def get_task(
 def get_tasks(
     project_id: UUID = None,
     assignee_id: UUID = None,
+    sprint_id: UUID | str = None,
+    sprint_not_assigned: bool = Query(False, description="Set true to get tasks with no sprint assigned"),
     status: TaskStatus = None,
     skip: int = 0,
     limit: int = 20,
@@ -105,10 +107,20 @@ def get_tasks(
     Fetch multiple tasks with optional filters:
     - project_id: filter by project
     - assignee_id: filter by assignee
+    - sprint_id: filter by sprint
+    - sprint_not_assigned: filter tasks with no sprint
     - status: filter by status enum
     - skip/limit: pagination
     """
-    return service.get_tasks(project_id, assignee_id, status, skip, limit)
+    return service.get_tasks(
+        project_id=project_id,
+        assignee_id=assignee_id,
+        sprint_id=sprint_id,
+        sprint_not_assigned=sprint_not_assigned,
+        status=status,
+        skip=skip,
+        limit=limit
+    )
 
 
 # -----------------------------
