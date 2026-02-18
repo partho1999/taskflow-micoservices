@@ -238,7 +238,54 @@ services:
     networks:
       - taskflow_net
 
+  comment_service: 
+    build: ./services/comment_service 
+    command: >
+      gunicorn cmt_service.wsgi:application
+      --bind 0.0.0.0:8005
+      --workers 2
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+    container_name: comment_service 
+    restart: always 
+    env_file: 
+      - ./services/comment_service/.env 
+    environment:
+      - DJANGO_SETTINGS_MODULE=cmt_service.settings 
+    depends_on: 
+      - comment_db 
+    volumes: 
+      # - ./services/comment_service:/app 
+      - ./services/comment_service/keys:/app/keys 
+    ports:
+      - "8005:8005" 
+    networks: 
+      - taskflow_net 
+    labels:
+      - "traefik.enable=true"
 
+      # ROUTER RULE
+      - "traefik.http.routers.cmt.rule=Host(`localhost`) && PathPrefix(`/cmt`)"
+      - "traefik.http.routers.cmt.entrypoints=web"
+
+      # STRIP PREFIX
+      - "traefik.http.middlewares.cmt-stripprefix.stripprefix.prefixes=/cmt"
+      - "traefik.http.routers.cmt.middlewares=cmt-stripprefix"
+
+      # LOADBALANCER PORT
+      - "traefik.http.services.cmt.loadbalancer.server.port=8005"
+
+  comment_db: 
+    image: postgres:16 
+    container_name: comment_db 
+    restart: always 
+    env_file: 
+      - .env.cmt # <-- stays in project root 
+    volumes: 
+      - cmt_db_data:/var/lib/postgresql/data 
+    networks: 
+      - taskflow_net
 
 
   # -----------------------------------
@@ -293,5 +340,6 @@ volumes:
   project_db_data:
   task_db_data:
   sprint_db_data:
+  cmt_db_data:
   auth_media: 
   pgadmin_data:
