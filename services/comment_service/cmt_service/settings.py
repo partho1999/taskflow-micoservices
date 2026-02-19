@@ -144,7 +144,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "cmt_service.core.auth.MicroserviceJWTAuthentication",
-    ]
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
+    "PAGE_SIZE": 20,  # Number of items per page
+    "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%SZ",  # optional: ISO-style timestamps
 }
 
 # Default key paths
@@ -191,3 +194,6 @@ LOGGING = {
         },
     },
 }
+
+FORCE_SCRIPT_NAME = "/cmt"
+USE_X_FORWARDED_HOST = True

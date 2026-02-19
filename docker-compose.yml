@@ -273,6 +273,11 @@ services:
       - "traefik.http.middlewares.cmt-stripprefix.stripprefix.prefixes=/cmt"
       - "traefik.http.routers.cmt.middlewares=cmt-stripprefix"
 
+      # CUSTOM HEADERS for Django
+      - "traefik.http.middlewares.cmt-headers.headers.customrequestheaders.X-Forwarded-Prefix=/cmt"
+      - "traefik.http.middlewares.cmt-headers.headers.customrequestheaders.X-Forwarded-Host=localhost:8081"
+      - "traefik.http.routers.cmt.middlewares=cmt-stripprefix,cmt-headers"
+
       # LOADBALANCER PORT
       - "traefik.http.services.cmt.loadbalancer.server.port=8005"
 
