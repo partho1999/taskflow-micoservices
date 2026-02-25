@@ -292,6 +292,38 @@ services:
     networks: 
       - taskflow_net
 
+  attachment_service:
+    build: ./services/attachment_service
+    container_name: attachment_service
+    restart: always
+    env_file:
+      - ./services/attachment_service/.env
+    depends_on:
+      - attachment_db
+    volumes:
+      - ./services/attachment_service/uploads:/app/uploads
+    networks:
+      - taskflow_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.attachment.rule=Host(`localhost`) && PathPrefix(`/attachments`)"
+      - "traefik.http.middlewares.attachment-stripprefix.stripprefix.prefixes=/attachments"
+      - "traefik.http.routers.attachment.middlewares=attachment-stripprefix"
+      - "traefik.http.services.attachment.loadbalancer.server.port=3000"
+
+  attachment_db:
+    image: postgres:16
+    container_name: attachment_db
+    restart: always
+    environment:
+      POSTGRES_DB: attachments
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - attachment_db_data:/var/lib/postgresql/data
+    networks:
+      - taskflow_net
+
 
   # -----------------------------------
   # 🚀 API GATEWAY (FASTAPI)
@@ -346,5 +378,6 @@ volumes:
   task_db_data:
   sprint_db_data:
   cmt_db_data:
+  attachment_db_data:
   auth_media: 
   pgadmin_data:

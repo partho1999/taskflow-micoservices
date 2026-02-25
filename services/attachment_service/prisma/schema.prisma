@@ -1,0 +1,20 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Attachment {
+  id         Int      @id @default(autoincrement())
+  filename   String
+  original   String
+  mimetype   String
+  size       Int
+  path       String
+  entityType String
+  entityId   String
+  createdAt  DateTime @default(now())
+}
